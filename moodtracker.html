@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mood Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #51243f;
+    --surface2: #7b2e7f;
+    --border: #d39be0;
+    --accent: #ff7ec9;
+    --accent2: #7c6af7;
+    --text: #fff8ff;
+    --muted: #e0c7e6;
+    --danger: #f05ba8;
+    --mood1: #f05bcd;
+    --mood2: #f0845b;
+    --mood3: #f0c45b;
+    --mood4: #e063a8;
+    --mood5: #2e8eb6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.35);
+  }
+  .header h1 span { color: var(--accent); }
+  .today-badge {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 4px;
+    width: fit-content;
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    opacity: 0.82;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--accent);
+    color: #0f0f11;
+    opacity: 1;
+  }
+  .tab:not(.active):hover { opacity: 1; }
+
+  /* ── Views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Grid Layout ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  /* ── Calendar ── */
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cal-month {
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .cal-nav { display: flex; gap: 6px; }
+  .cal-btn {
+    width: 30px;
+    height: 30px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .cal-btn:hover { background: var(--border); }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .cal-label {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 4px 0 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .cal-cell.inactive { color: var(--muted); opacity: 0.4; cursor: default; }
+  .cal-cell.today { background: var(--surface2); font-weight: 500; border: 1px solid var(--border); }
+  .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .cal-cell:not(.inactive):hover { background: var(--surface2); }
+  .cal-cell .dot {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .form-group input[type="date"],
+  .form-group input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    color-scheme: dark;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+
+  /* ── Slider ── */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(200,245,87,0.15);
+  }
+  .slider-val {
+    width: 32px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 500;
+    font-family: 'DM Serif Display', serif;
+  }
+  .mood-emoji {
+    font-size: 22px;
+    width: 32px;
+    text-align: center;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f11;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+    font-size: 15px;
+    padding: 12px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 7px;
+  }
+  .btn-danger:hover { background: rgba(240,91,91,0.1); }
+
+  /* ── Entries List ── */
+  .entries-list { display: flex; flex-direction: column; gap: 10px; }
+  .entry-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.2s;
+  }
+  .entry-card:hover { border-color: #3e3e50; }
+  .entry-mood-dot {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-date { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+  .entry-stats { font-size: 14px; font-weight: 500; }
+  .entry-note { font-size: 13px; color: var(--text); opacity: 0.92; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry-bars { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .mini-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .mini-bar-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .mini-bar-bg { width: 6px; height: 36px; background: var(--border); border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+  .mini-bar-fill { width: 100%; border-radius: 3px; }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── Chart ── */
+  .chart-wrap { position: relative; height: 160px; margin-top: 8px; }
+  canvas { width: 100% !important; }
+
+  /* ── Empty ── */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* ── User Info View ── */
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: #0f0f11;
+    flex-shrink: 0;
+  }
+  .info-name { font-family: 'DM Serif Display', serif; font-size: 24px; }
+  .info-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .info-form .form-group input { }
+  .success-msg {
+    background: rgba(200,245,87,0.1);
+    border: 1px solid rgba(200,245,87,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #0f0f11;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>Mood <span>Tracker</span></h1>
+    <span class="today-badge" id="todayBadge"></span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log')">Today's Log</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+    <button class="tab" onclick="switchTab('stats')">Insights</button>
+    <button class="tab" onclick="switchTab('user')">Profile</button>
+  </div>
+
+  <!-- LOG VIEW -->
+  <div class="view active" id="view-log">
+    <div class="two-col">
+      <div class="card">
+        <h2>Log an Entry</h2>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="form-group">
+          <label>Mood</label>
+          <div class="slider-row">
+            <span class="mood-emoji" id="moodEmoji">😐</span>
+            <input type="range" min="1" max="10" value="5" id="moodSlider" oninput="updateSlider('mood')">
+            <span class="slider-val" id="moodVal">5</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Energy</label>
+          <div class="slider-row">
+            <span class="mood-emoji" id="energyEmoji">⚡</span>
+            <input type="range" min="1" max="10" value="5" id="energySlider" oninput="updateSlider('energy')">
+            <span class="slider-val" id="energyVal">5</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <input type="text" id="noteInput" placeholder="How was your day?">
+        </div>
+        <button class="btn btn-primary" onclick="addEntry()">+ Add Entry</button>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="cal-header">
+            <span class="cal-month" id="calMonth"></span>
+            <div class="cal-nav">
+              <button class="cal-btn" onclick="changeMonth(-1)">‹</button>
+              <button class="cal-btn" onclick="changeMonth(1)">›</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div class="view" id="view-history">
+    <div class="card">
+      <h2>All Entries</h2>
+      <div id="entriesList"></div>
+    </div>
+  </div>
+
+  <!-- STATS VIEW -->
+  <div class="view" id="view-stats">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="card">
+      <h2>Mood over time</h2>
+      <div class="chart-wrap">
+        <canvas id="moodChart"></canvas>
+      </div>
+    </div>
+    <div style="margin-top:20px;" class="card">
+      <h2>Energy over time</h2>
+      <div class="chart-wrap">
+        <canvas id="energyChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER VIEW -->
+  <div class="view" id="view-user">
+    <div class="card">
+      <div class="info-header">
+        <div class="avatar" id="avatarEl">?</div>
+        <div>
+          <div class="info-name" id="displayName">Your Name</div>
+          <div class="info-sub" id="displaySince">No entries yet</div>
+        </div>
+      </div>
+      <div class="info-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="nameInput" placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label>Goal / Intention</label>
+          <input type="text" id="goalInput" placeholder="e.g. Reduce stress, Sleep better">
+        </div>
+        <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+        <div class="success-msg" id="profileSuccess">Profile saved!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── Storage helpers ──
+const LS_ENTRIES = 'moodtracker_entries';
+const LS_PROFILE = 'moodtracker_profile';
+
+function getEntries() {
+  try { return JSON.parse(localStorage.getItem(LS_ENTRIES)) || []; }
+  catch { return []; }
+}
+function saveEntries(e) { localStorage.setItem(LS_ENTRIES, JSON.stringify(e)); }
+function getProfile() {
+  try { return JSON.parse(localStorage.getItem(LS_PROFILE)) || {}; }
+  catch { return {}; }
+}
+function saveProfileData(p) { localStorage.setItem(LS_PROFILE, JSON.stringify(p)); }
+
+// ── Helpers ──
+const MOODS = ['','😭','😢','😟','😕','😐','🙂','😊','😄','😁','🤩'];
+const ENERGY = ['','🪫','🪫','🌑','🌒','⚡','💡','🔆','🔥','🔥','🚀'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function moodColor(v) {
+  const colors = ['','#f05b5b','#f05b5b','#f0845b','#f0845b','#f0c45b','#f0c45b','#a8e063','#a8e063','#c8f557','#c8f557'];
+  return colors[v] || '#888';
+}
+
+function fmtDate(d) {
+  const [y,m,day] = d.split('-');
+  return `${MONTHS[parseInt(m)-1]} ${parseInt(day)}, ${y}`;
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Init ──
+let calYear, calMonth;
+const now = new Date();
+calYear = now.getFullYear();
+calMonth = now.getMonth();
+
+document.getElementById('dateInput').value = todayStr();
+document.getElementById('todayBadge').textContent = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+
+updateSlider('mood');
+updateSlider('energy');
+renderCalendar();
+loadProfile();
+
+// ── Tab switching ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['log','history','stats','user'][i] === tab));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if (tab === 'history') renderHistory();
+  if (tab === 'stats') renderStats();
+}
+
+// ── Sliders ──
+function updateSlider(type) {
+  if (type === 'mood') {
+    const v = +document.getElementById('moodSlider').value;
+    document.getElementById('moodVal').textContent = v;
+    document.getElementById('moodEmoji').textContent = MOODS[v];
+  } else {
+    const v = +document.getElementById('energySlider').value;
+    document.getElementById('energyVal').textContent = v;
+    document.getElementById('energyEmoji').textContent = ENERGY[v];
+  }
+}
+
+// ── Add Entry ──
+function addEntry() {
+  const date = document.getElementById('dateInput').value;
+  const mood = +document.getElementById('moodSlider').value;
+  const energy = +document.getElementById('energySlider').value;
+  const note = document.getElementById('noteInput').value.trim();
+  if (!date) { showToast('Please select a date'); return; }
+
+  const entries = getEntries();
+  const existing = entries.findIndex(e => e.date === date);
+  const entry = { date, mood, energy, note, ts: Date.now() };
+
+  if (existing >= 0) {
+    entries[existing] = entry;
+    showToast('Entry updated!');
+  } else {
+    entries.push(entry);
+    showToast('Entry added!');
+  }
+  saveEntries(entries);
+  document.getElementById('noteInput').value = '';
+  renderCalendar();
+}
+
+// ── Calendar ──
+function renderCalendar() {
+  const entries = getEntries();
+  const entryDates = new Set(entries.map(e => e.date));
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevLast = new Date(calYear, calMonth, 0).getDate();
+  const today = todayStr();
+
+  document.getElementById('calMonth').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  let html = DAYS.map(d => `<div class="cal-label">${d}</div>`).join('');
+
+  for (let i = firstDay; i > 0; i--) {
+    html += `<div class="cal-cell inactive">${prevLast - i + 1}</div>`;
+  }
+  for (let i = 1; i <= lastDate; i++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const isToday = ds === today ? 'today' : '';
+    const dot = entryDates.has(ds) ? '<span class="dot"></span>' : '';
+    const entry = entries.find(e => e.date === ds);
+    const bg = entry ? `background:${moodColor(entry.mood)}22; border:1px solid ${moodColor(entry.mood)}55;` : '';
+    html += `<div class="cal-cell ${isToday}" style="${bg}" onclick="selectDate('${ds}')" title="${ds}">${i}${dot}</div>`;
+  }
+  const endDay = new Date(calYear, calMonth, lastDate).getDay();
+  for (let i = 1; i <= (6 - endDay); i++) {
+    html += `<div class="cal-cell inactive">${i}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function selectDate(ds) {
+  document.getElementById('dateInput').value = ds;
+  const entries = getEntries();
+  const e = entries.find(en => en.date === ds);
+  if (e) {
+    document.getElementById('moodSlider').value = e.mood;
+    document.getElementById('energySlider').value = e.energy;
+    document.getElementById('noteInput').value = e.note || '';
+    updateSlider('mood');
+    updateSlider('energy');
+    showToast('Entry loaded — edit and save to update');
+  }
+}
+
+// ── History ──
+function renderHistory() {
+  const entries = getEntries().slice().sort((a,b) => b.date.localeCompare(a.date));
+  const el = document.getElementById('entriesList');
+  if (!entries.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>No entries yet. Start logging your mood!</p></div>`;
+    return;
+  }
+  el.innerHTML = entries.map(e => {
+    const moodH = Math.round((e.mood / 10) * 36);
+    const energyH = Math.round((e.energy / 10) * 36);
+    return `
+    <div class="entry-card">
+      <div class="entry-mood-dot" style="background:${moodColor(e.mood)}22;">${MOODS[e.mood]}</div>
+      <div class="entry-info">
+        <div class="entry-date">${fmtDate(e.date)}</div>
+        <div class="entry-stats">Mood ${e.mood}/10 · Energy ${e.energy}/10</div>
+        ${e.note ? `<div class="entry-note">${e.note}</div>` : ''}
+      </div>
+      <div class="entry-bars">
+        <div class="mini-bar-wrap">
+          <div class="mini-bar-bg"><div class="mini-bar-fill" style="height:${moodH}px;background:${moodColor(e.mood)};"></div></div>
+          <div class="mini-bar-label">M</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar-bg"><div class="mini-bar-fill" style="height:${energyH}px;background:#7c6af7;"></div></div>
+          <div class="mini-bar-label">E</div>
+        </div>
+      </div>
+      <button class="btn btn-danger" onclick="deleteEntry('${e.date}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteEntry(date) {
+  if (!confirm('Delete entry for ' + fmtDate(date) + '?')) return;
+  const entries = getEntries().filter(e => e.date !== date);
+  saveEntries(entries);
+  renderHistory();
+  renderCalendar();
+  showToast('Entry deleted');
+}
+
+// ── Stats ──
+let moodChartInst, energyChartInst;
+
+function renderStats() {
+  const entries = getEntries().slice().sort((a,b) => a.date.localeCompare(b.date));
+
+  const sg = document.getElementById('statsGrid');
+  if (!entries.length) {
+    sg.innerHTML = '';
+    document.getElementById('moodChart').getContext('2d').clearRect(0,0,9999,9999);
+    return;
+  }
+  const avgMood = (entries.reduce((s,e) => s+e.mood, 0) / entries.length).toFixed(1);
+  const avgEnergy = (entries.reduce((s,e) => s+e.energy, 0) / entries.length).toFixed(1);
+  const streak = calcStreak(entries);
+
+  sg.innerHTML = `
+    <div class="stat-cell"><div class="stat-num" style="color:${moodColor(Math.round(avgMood))}">${avgMood}</div><div class="stat-label">Avg Mood</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#7c6af7">${avgEnergy}</div><div class="stat-label">Avg Energy</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:var(--accent)">${streak}</div><div class="stat-label">Day Streak</div></div>
+  `;
+
+  const labels = entries.map(e => {
+    const [,m,d] = e.date.split('-');
+    return `${parseInt(m)}/${parseInt(d)}`;
+  });
+  const moodData = entries.map(e => e.mood);
+  const energyData = entries.map(e => e.energy);
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#2e2e38' }, ticks: { color: '#7a7a8a', font: { size: 11 } } },
+      y: { min: 0, max: 10, grid: { color: '#2e2e38' }, ticks: { color: '#7a7a8a', stepSize: 2 } }
+    }
+  };
+
+  if (moodChartInst) moodChartInst.destroy();
+  moodChartInst = new Chart(document.getElementById('moodChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: moodData,
+        borderColor: '#c8f557',
+        backgroundColor: 'rgba(200,245,87,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: '#c8f557',
+        pointRadius: 4,
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: chartDefaults
+  });
+
+  if (energyChartInst) energyChartInst.destroy();
+  energyChartInst = new Chart(document.getElementById('energyChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: energyData,
+        borderColor: '#7c6af7',
+        backgroundColor: 'rgba(124,106,247,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: '#7c6af7',
+        pointRadius: 4,
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: chartDefaults
+  });
+}
+
+function calcStreak(entries) {
+  const sorted = entries.slice().sort((a,b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  let check = new Date();
+  for (const e of sorted) {
+    const ds = `${check.getFullYear()}-${String(check.getMonth()+1).padStart(2,'0')}-${String(check.getDate()).padStart(2,'0')}`;
+    if (e.date === ds) {
+      streak++;
+      check.setDate(check.getDate() - 1);
+    } else break;
+  }
+  return streak;
+}
+
+// ── Profile ──
+function saveProfile() {
+  const name = document.getElementById('nameInput').value.trim();
+  const goal = document.getElementById('goalInput').value.trim();
+  saveProfileData({ name, goal });
+  loadProfile();
+  const msg = document.getElementById('profileSuccess');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+  showToast('Profile saved!');
+}
+
+function loadProfile() {
+  const p = getProfile();
+  if (p.name) {
+    document.getElementById('nameInput').value = p.name;
+    document.getElementById('displayName').textContent = p.name;
+    document.getElementById('avatarEl').textContent = p.name.charAt(0).toUpperCase();
+    if (p.goal) document.getElementById('displaySince').textContent = '🎯 ' + p.goal;
+  }
+  if (p.goal) document.getElementById('goalInput').value = p.goal;
+  const entries = getEntries();
+  if (entries.length && !p.goal) {
+    document.getElementById('displaySince').textContent = entries.length + ' entries logged';
+  }
+}
+</script>
+</body>
+</html>
